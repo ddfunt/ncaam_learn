@@ -23,10 +23,22 @@ def get_page(url, session):
 
     return BeautifulSoup(resp, 'lxml')
 
+def get_all_teams(page):
+    data_table = page.find_all('table', id='ratings-table')[0]
+    body = data_table.find_all('tbody')[0]
+    rows = body.find_all('tr')
+    teams = []
+    for row in rows:
+        d = row.find_all('td')
 
-
+        t = Team.from_basic_stats(d)
+        if t is not None:
+            teams.append(t)
+    return teams
 
 if __name__ == '__main__':
+    from orm import Team
+
     sess = open_session()
 
     home = get_page(base, sess)
@@ -35,15 +47,10 @@ if __name__ == '__main__':
     years_links = {year.text: year['href'] for year in years_raw}
 
     page = get_page(base + years_links['2018'], sess)
-    data_table = page.find_all('table', id='ratings-table')[0]
-    body = data_table.find_all('tbody')[0]
-    rows = body.find_all('tr')
+    teams = get_all_teams(page)
 
-    for row in rows:
-        d = row.find_all('td')
-        print(d)
+    t = teams[0]
+    t.load_games(sess)
 
-
-
-    #table = pd.read_html(str(data_table[0]))[0]
+    print(t)
 
