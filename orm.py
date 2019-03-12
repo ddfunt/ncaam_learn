@@ -62,15 +62,73 @@ class Team:
 
 class Season:
 
-    def __init__(self, session, team, base='https://kenpom.com/'):
 
+    def __init__(self, session, team, base='https://kenpom.com/'):
+        self.games = []
         page = session.get(base + team.url)
         page_s = BeautifulSoup(page.text, 'lxml')
         sched = page_s.find_all('table', id='schedule-table')[0]
         games = sched.find_all('tbody')[0]
         print(len(games))
-        for row in games:
-            print(row)
+        #print()
+        tourn = 0
 
+        for row in games:
+            real = True
+            #print(row)
+            try:
+
+                if 'label' in row.td['class']:
+                    real = False
+                    print(row.text)
+                    if 'NCAA' in row.td.text:
+                        tourn = 2
+                    else:
+                        tourn = 1
+                else:
+                    print('HEY IM HERE')
+                    self.games.append(Game.from_web(row, tourn))
+
+            except Exception as e:
+                #print(e)
+
+                pass
+            finally:
+                if real:
+                    try:
+                        self.games.append(Game.from_web(row, tourn))
+                        print('Game Created')
+                    except:
+                        pass
 class Game:
     opponet = None
+    _score = None
+
+    @classmethod
+    def from_web(cls, data, tourn):
+        #print('CREATING GAME')
+        instance = cls()
+        instance.tourn = tourn
+        #print(data)
+        rows = data.find_all('td')
+        #print(rows)
+        instance.date = rows[0].text
+        instance.rank = rows[1].text
+        instance.opponent = rows[3].text
+        instance.outcome, instance.score = rows[4].text.split(',')
+        if 'Home' in rows[6].text:
+            instance.home = 2
+        elif 'Neutral' in rows[6].text:
+            instance.home = 1
+        else:
+            instance.home = 0
+        return instance
+
+    @property
+    def score(self):
+        return self._score
+
+    @score.setter
+    def score(self, value):
+        self._score = value
+        self.us_score, self.them_score = value.split('-')
