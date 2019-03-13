@@ -3,6 +3,20 @@ from bs4 import BeautifulSoup
 class Stat:
     pass
 class Team:
+    keys = ['rank',
+            'name',
+            'conf',
+            'win_loss',
+            'adjEM',
+            'adjO',
+            'adjD',
+            'adjT',
+            'luck',
+            'adjEM',
+            'oppO',
+            'oppD',
+            'noncon_adjEM'
+            ]
 
     name = None
     _url = None
@@ -20,30 +34,10 @@ class Team:
         if len(_data) == 0:
             return None
         data = _data
-        keys = ['rank',
-         'name',
-         'conf',
-         'win_loss',
-         'adjEM',
-         'adjO',
-               # '_',
-         'adjD',
-                #'_',
-         'adjT',
-                #'_',
-         'luck',
-                #'_',
-         'adjEM',
-                #'_',
-         'oppO',
-                #'_',
-         'oppD',
-                #'_',
-         'noncon_adjEM'
-         ]
+
         #print('len', len(keys), len(data), )
         instance = cls()
-        for key, d in zip(keys, data):
+        for key, d in zip(instance.keys, data):
             instance.seed = None
             if key == 'name':
                 seed = d.find_all('span')
@@ -60,6 +54,19 @@ class Team:
     def load_games(self, session):
         self.season = Season(session, self)
 
+    def headers(self, opp=False):
+        if opp:
+            return ', '.join([f'opp_{key}' for key in self.keys])
+        else:
+            return ','.join(self.keys)
+
+    def csv_row(self, opp=False):
+        if opp:
+            d = [f'opp_{str(getattr(self, key))}' for key in self.keys]
+        else:
+            d = [str(getattr(self, key)) for key in self.keys]
+        return ', '.join(d)
+
 class Season:
 
 
@@ -69,7 +76,7 @@ class Season:
         page_s = BeautifulSoup(page.text, 'lxml')
         sched = page_s.find_all('table', id='schedule-table')[0]
         games = sched.find_all('tbody')[0]
-        print(len(games))
+
         #print()
         tourn = 0
 
@@ -80,13 +87,13 @@ class Season:
 
                 if 'label' in row.td['class']:
                     real = False
-                    print(row.text)
+
                     if 'NCAA' in row.td.text:
                         tourn = 2
                     else:
                         tourn = 1
                 else:
-                    print('HEY IM HERE')
+
                     self.games.append(Game.from_web(row, tourn))
 
             except Exception as e:
@@ -95,11 +102,14 @@ class Season:
                 pass
             finally:
                 if real:
+
                     try:
-                        self.games.append(Game.from_web(row, tourn))
-                        print('Game Created')
-                    except:
-                        pass
+                        game = Game.from_web(row, tourn)
+                        #print(game.date)
+                        self.games.append(game)
+
+                    except Exception as e:
+                        pass#print(e)
 class Game:
     opponet = None
     _score = None
@@ -111,17 +121,24 @@ class Game:
         instance.tourn = tourn
         #print(data)
         rows = data.find_all('td')
+        #print(len(rows))
         #print(rows)
-        instance.date = rows[0].text
-        instance.rank = rows[1].text
-        instance.opponent = rows[3].text
-        instance.outcome, instance.score = rows[4].text.split(',')
-        if 'Home' in rows[6].text:
-            instance.home = 2
-        elif 'Neutral' in rows[6].text:
-            instance.home = 1
+        if len(rows) == 11:
+            r = [0, 1, 3, 4,7]
+        elif len(rows) == 10:
+            r = [0, 1, 2,3, 6 ]
+        #print(rows)
+        instance.date = rows[r[0]].text
+        instance.rank = rows[r[1]].text
+        instance.opponent = rows[r[2]].text
+        #print(rows[r[3]])
+        instance.outcome, instance.score = rows[r[3]].text.split(',')
+        if 'Home' in rows[r[4]].text:
+            instance.home = 'H'
+        elif 'Neutral' in rows[r[4]].text:
+            instance.home = 'N'
         else:
-            instance.home = 0
+            instance.home = 'A'
         return instance
 
     @property
@@ -131,4 +148,14 @@ class Game:
     @score.setter
     def score(self, value):
         self._score = value
-        self.us_score, self.them_score = value.split('-')
+        self.team1_score, self.team2_score = value.split('-')
+
+
+    def headers(self):
+        s = 'date, rank, opponent, outcome, team_score, opp_score, home/away'
+        return s
+
+    def csv_row(self):
+
+        row = f'{self.date}, {self.rank}, {self.opponent}, {self.outcome}, {self.team1_score}, {self.team2_score}, {self.home}'
+        return row
