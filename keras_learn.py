@@ -1,7 +1,18 @@
+from __future__ import absolute_import, division, print_function
+
+# TensorFlow and tf.keras
 import tensorflow as tf
+from tensorflow import keras
+
+# Helper libraries
+import numpy as np
+import matplotlib.pyplot as plt
 import numpy as np
 
-def load_csv( filename='game_data.csv'):
+
+
+def load_csv( year):
+    filename = 'game_data_{}.csv'.format(year)
     with open(filename, 'r') as f:
         headers = f.readline().replace('/', '_').split(',')
         data = f.readlines()
@@ -48,34 +59,25 @@ class DataClass:
             self._home_away = 1
         else:
             self._home_away = 0
-    #@property
-    #def outcome(self):
-    #    return self._outcome
 
-    #@outcome.setter
-    #def outcome(self, value):
+    @property
+    def outcome(self):
+        return self._outcome
+
+    @outcome.setter
+    def outcome(self, value):
+        if value.lower() == 'w':
+            self._outcome = 1
+        else:
+            self._outcome = 0
 
 
 data = []
-h, d = load_csv()
-for row in d:
-    data.append(DataClass(h,row))
+for year in [2018, 2017, 2016, 2015, 2014]:
+    h, d = load_csv(year)
+    for row in d:
+        data.append(DataClass(h,row))
 
-print(data[0].__dict__)
-print(data[0].name)
-"""
-date, rank, opponent, outcome, team_score, 
-opp_score, home/away, rank,name,conf,
-win_loss,adjEM,adjO,adjD,adjT,
-luck,adjEM,oppO,oppD,noncon_adjEM, 
-opp_rank, opp_name, opp_conf, opp_win_loss, opp_adjEM, 
-opp_adjO, opp_adjD, opp_adjT, opp_luck, opp_adjEM, 
-opp_oppO, opp_oppD, opp_noncon_adjEM
-
-"""
-
-
-#tf.feature_column.numeric_column(key='rank') #1
 feature_columns = [
 
         tf.feature_column.numeric_column(key='team_score'), #4
@@ -105,22 +107,6 @@ feature_columns = [
         tf.feature_column.numeric_column(key='opp_noncon_adjEM')
         ]
 
-
-
-
-model = tf.estimator.DNNClassifier(
-  model_dir='model/',
-  hidden_units=[10],
-  feature_columns=feature_columns,
-  n_classes=2,
-  label_vocabulary=['W', 'L'],
-  optimizer=tf.train.ProximalAdagradOptimizer(
-    learning_rate=0.1,
-    l1_regularization_strength=0.001
-  ))
-
-
-import numpy as np
 
 train_features = {
 
@@ -157,18 +143,41 @@ train_features = {
       #'home-opposition-goals': np.array([3, 8, 6]),
       ## ... for each feature
 }
+train_features = np.array([x for _, x in train_features.items()]).transpose().tolist()
 
-train_labels = np.array([d.outcome for d in data])
+train_labels = [d.outcome for d in data]#)
+print(train_labels)
 
+model = keras.Sequential([
+    #keras.layers.Flatten(input_shape=(28, 28)),
+    #keras.layers.
+    keras.layers.Dense(160, activation=tf.nn.relu),
+    keras.layers.Dense(2, activation=tf.nn.softmax)
+])
+print(np.shape(train_features))
+print(np.shape(train_labels))
 
-train_input_fn = tf.estimator.inputs.numpy_input_fn(
-  x=train_features,
-  y=train_labels,
-  batch_size=500,
-  num_epochs=None,
-  shuffle=True
-  )
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+import random
 
-model.train(input_fn=train_input_fn, steps=10000, )
+test_features = []
+test_labels = []
+for i in range(100):
+    blah = random.randint(0, len(train_features))
+    test_features.append(train_features.pop(blah))
+    test_labels.append(train_labels.pop(blah))
 
-#if __name__ == '__main__':
+test_labels = np.array(test_labels)
+test_features = np.array(test_features)
+train_labels = np.array(train_labels)
+train_features = np.array(train_features)
+print(np.shape(train_features))
+print(np.shape(train_labels))
+
+model.fit(train_features, train_labels, epochs=10)
+
+test_loss, test_acc = model.evaluate(test_features, test_labels)
+
+print('Test accuracy:', test_acc)
