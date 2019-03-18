@@ -72,7 +72,7 @@ def parse_all():
     years_links = {year.text: year['href'] for year in years_raw}
 
     #for year, link in years_links.items():#years_links.items():
-    for year in [ '2015', '2016', '2017', '2018']:
+    for year in [ '2019']:
    #for year in ['2018']:
 
         if year == '2019':

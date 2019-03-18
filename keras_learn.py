@@ -70,7 +70,8 @@ class Team:
 
     @property
     def list_data(self):
-        data = [ self.win_loss, self.adjEM, self.adjD, self.adjT, self.luck,
+        #self.win_loss,
+        data = [self.win_loss,  self.adjEM, self.adjD, self.adjT, self.luck,
                  self.oppO, self.oppD, self.noncon_adjEM]
         data.extend(self.misc)
         return data
@@ -122,80 +123,9 @@ class Game:
 
 
 
-class DataClass:
-
-
-    def __init__(self, headers, data_row):
-        data_row = data_row.split(',')
-        for name, d in zip(headers, data_row):
-
-            if name.strip() == 'misc' or name.strip() == 'opp_misc':
-
-                #print(d)
-
-                z = d.split('^')
-                #print(z)
-                setattr(self,name, list(map(float,z)))
-                #print(self.misc)
-            else:
-                try:
-                    setattr(self, name.strip(), float(d))
-                except:
-                    setattr(self, name.strip(), d.strip())
-
-    @property
-    def win_loss(self):
-        return self._win_loss
-
-    @win_loss.setter
-    def win_loss(self, val):
-        x = val.split('-')
-        self._win_loss =  float(x[0])-float(x[1])
-
-    @property
-    def opp_win_loss(self):
-        return self._opp_win_loss
-
-    @opp_win_loss.setter
-    def opp_win_loss(self, val):
-        x = val.split('-')
-        self._opp_win_loss = float(x[0]) - float(x[1])
-
-    @property
-    def home_away(self):
-        return self._home_away
-
-    @win_loss.setter
-    def home_away(self, val):
-        if val.lower() == 'h':
-            self._home_away = 2
-        elif val.lower() == 'n':
-            self._home_away = 1
-        else:
-            self._home_away = 0
-
-    @property
-    def outcome(self):
-        return self._outcome
-
-    @outcome.setter
-    def outcome(self, value):
-        if value.lower() == 'w':
-            self._outcome = 1
-        else:
-            self._outcome = 0
-
-
-
-
 def features_labels(games):
 
     train_features = [game.list_data for game in games]
-
-
-    #train_features = np.array([x for x in train_features]).transpose().tolist()
-    #print(train_features)
-    #print(np.shape(train_features))
 
     train_labels = [d.outcome for d in games]#)
 
@@ -204,7 +134,7 @@ def features_labels(games):
 
 def create_model():
     model = keras.Sequential([
-        #keras.layers.Flatten(input_shape=(28, 28)),
+        #keras.layers.Flatten(input_shape=(65, 1)),
         #keras.layers.
         keras.layers.Dense(40, activation=tf.nn.relu),
         keras.layers.Dense(2, activation=tf.nn.softmax)
@@ -250,20 +180,20 @@ def train(model,train_features, train_labels,  callback=None, epochs=10):
 
 
 if __name__ == '__main__':
-    team_data, game_data = load_data([2015, 2016, 2017, 2018])
+    team_data, game_data = load_data([ 2016, 2017, 2018, 2019])
 
     train_features, train_labels = features_labels(game_data)
-    print(train_features[0])
-    input()
-    model = create_model()
-    test_features, test_labels, train_features, train_labels = get_test_set(train_features, train_labels, n=1000)
 
+    model = create_model()
+    #test_features, test_labels, train_features, train_labels = get_test_set(train_features, train_labels, n=100)
+
+    #print(np.shape(test_features))
 
     callback = checkpoint_callback()
     compile_model(model)
-    train(model,train_features, train_labels,  callback=callback, epochs=30)
+    train(model, np.array(train_features), np.array(train_labels),  callback=callback, epochs=3000)
 
 
-    test_loss, test_acc = model.evaluate(test_features, test_labels)
+    #test_loss, test_acc = model.evaluate(test_features, test_labels)
 
-    print('Test accuracy:', test_acc)
+    #print('Test accuracy:', test_acc)

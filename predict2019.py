@@ -1,4 +1,6 @@
 from __future__ import absolute_import, division, print_function
+from keras_learn import create_model, load_data, features_labels, get_test_set, compile_model
+
 
 # TensorFlow and tf.keras
 import tensorflow as tf
@@ -8,70 +10,44 @@ from tensorflow import keras
 import numpy as np
 import matplotlib.pyplot as plt
 import numpy as np
-from keras_learn import DataClass
+from keras_learn import load_data
 
-
-def load_csv():
-    filename = 'team_data.csv'
-    with open(filename, 'r') as f:
-        headers = f.readline().replace('/', '_').split(',')
-        d = f.readlines()
-
-    data = {}
-    for row in d:
-        #print(row)
-        dc = DataClass(headers, row)
-        data[dc.name] = dc
-    return data
-
-def features_labels(team):
-
-    train_features = [
-
-
-        #'team_score': np.array([x.team_score for x in data]),
-        #'rank': np.array([x.rank for x in data]),
-        #'opp_score': np.array([x.opp_score for x in data]), #5
-         #team.home_away, #6
-        #'conf': np.array([x.conf for x in data]), #9
-         team.win_loss,  #10
-         team.adjEM,
-         team.adjO,
-         team.adjD,
-         team.adjT,
-         team.luck,
-
-         team.oppO,
-         team.oppD,
-         team.noncon_adjEM,
-
-         #np.array([x.opp_rank for x in data]),
-        #'opp_name': np.array([x.opp_name for x in data]),onf': np.array([x.opp_conf for x in data]),
-         #np.array([x.opp_win_loss for x in data]),
-
-         #team.opp_adjO,
-         #team.opp_adjD,
-         #team.opp_adjT,
-         #team.opp_luck,
-         #team.opp_adjEM,
-         #team.opp_oppO,
-         #team.opp_oppD,
-         #team.opp_noncon_adjEM
-
-    ]
-
-    for x in team.misc:
-        train_features.append(x)
-
-    return train_features
 
 def construct_game(team1, team2):
-    pass
+    d = [1]
+    d.extend(team1.list_data)
+    d.extend(team2.list_data)
+    return np.array([np.array(d)])
+
+
+model = create_model()
+compile_model(model)
+checkpoint_path = "training_1/cp.ckpt"
 
 if __name__ == '__main__':
-    data = load_csv()
-    team1 = features_labels(data['Virginia'])
-    team2 = features_labels(data['Florida St.'])
-    print(team1)
-    print(len(team1))
+    teams, games = load_data([2019])
+    #print(teams)
+    team1 = teams['Virginia Tech_2019']
+    team2 = teams['Saint Louis_2019'] #Maryland Eastern Shore
+    game = construct_game(team1, team2)
+    #print(game)
 
+    #loss, acc = model.evaluate(game, np.array([1]))
+    #print("Untrained model, accuracy: {:5.2f}%".format(100 * acc))
+
+    model.load_weights(checkpoint_path)
+    #loss, acc = model.evaluate(game, np.array([1]))
+    #print("Restored model, accuracy: {:5.2f}%".format(100 * acc))
+    #print(loss)
+
+
+    game = construct_game(team1, team2)
+    predictions = model.predict(game)[0]
+    print(f'{team1.name} win:  {predictions[1]*100:.2f}%')
+    print(f'{team1.name} loss: {predictions[0]*100:.2f}%')
+    game2 = construct_game(team2, team1)
+    predictions_invert = model.predict(game2)[0]
+    print(f'{team2.name} win:  {predictions_invert[1]*100:.2f}%')
+    print(f'{team2.name} loss: {predictions_invert[0]*100:.2f}%')
+    print('')
+    print(f'Unknown Diff: {(abs(predictions[1]-predictions_invert[0])*100):.4f}')
