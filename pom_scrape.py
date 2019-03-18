@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+from orm import Team
 import pandas as pd
 
 from collections import OrderedDict
@@ -28,7 +29,7 @@ def get_page(url, session):
 def to_csv():
     pass
 
-def get_all_teams(page):
+def get_all_teams(page, sess=None, stats=True):
     data_table = page.find_all('table', id='ratings-table')[0]
     body = data_table.find_all('tbody')[0]
     rows = body.find_all('tr')
@@ -37,13 +38,32 @@ def get_all_teams(page):
         d = row.find_all('td')
 
         t = Team.from_basic_stats(d)
+
+
         if t is not None:
+            print('loading', t.name)
+            if stats:
+                t.load_advanced_stats(sess)
+                #time.sleep(1)
             teams[t.name] = t
     return teams
 
-if __name__ == '__main__':
-    from orm import Team
 
+def parse_current():
+    sess = open_session()
+
+    page = get_page(base, sess)
+
+    teams = get_all_teams(page, sess=sess, stats=True)
+    with open('team_data.csv', 'w') as f:
+        f.write(list(teams.values())[0].headers(opp=False) +'\n')
+        for _,t in teams.items():
+            #print(t)
+            f.write(t.csv_row(opp=False) + '\n')
+
+
+
+def parse_all():
     sess = open_session()
 
     home = get_page(base, sess)
@@ -52,12 +72,16 @@ if __name__ == '__main__':
     years_links = {year.text: year['href'] for year in years_raw}
 
     #for year, link in years_links.items():#years_links.items():
-    for year in ['2015', '2016', '2017', '2018']:
+    for year in [ '2015', '2016', '2017', '2018']:
    #for year in ['2018']:
-        link = years_links[year]
+
+        if year == '2019':
+            link = ''
+        else:
+            link = years_links[year]
 
         page = get_page(base + link, sess)
-        teams = get_all_teams(page)
+        teams = get_all_teams(page, stats=True, sess=sess)
 
         t = teams[list(teams.keys())[0]]
 
@@ -73,8 +97,8 @@ if __name__ == '__main__':
                 try:
                     opp_csv = teams[opp].csv_row()
                     game_csv = game.csv_row()
-                    full_table.append(','.join([game_csv, team_csv, opp_csv]))
-                    header = ', '.join([game.headers(), team.headers(), teams[opp].headers(opp=True)])
+                    full_table.append(','.join([game_csv, team_name]))
+                    header = ', '.join([game.headers(), 'team1'])
 
                     if header is not None:
                         _header = header
@@ -82,8 +106,23 @@ if __name__ == '__main__':
                     pass #print(e)
 
 
-            time.sleep(1)
+            #time.sleep(1)
         #print(full_table)
+
+        table = []
+        for _, team in teams.items():
+            #headers = team.headers()
+            d_row = team.csv_row()
+            table.append(d_row)
+        _table = '\n'.join(table)
+
+        with open(f'team_data_{year}.csv', 'w') as f:
+            f.write(team.headers() + ',\n')
+            f.write(_table)
+
+
+
+
         write_data = '\n'.join(full_table)
         with open(f'game_data_{year}.csv', 'w') as f:
             f.write(_header + '\n')
@@ -94,3 +133,8 @@ if __name__ == '__main__':
 
     #print(t)
 
+
+if __name__ == '__main__':
+    from orm import Team
+    #parse_current()
+    parse_all()

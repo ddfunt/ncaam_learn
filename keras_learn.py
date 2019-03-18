@@ -16,7 +16,111 @@ def load_csv( year):
     with open(filename, 'r') as f:
         headers = f.readline().replace('/', '_').split(',')
         data = f.readlines()
-    return headers, data
+
+    #data =
+
+    filename = 'team_data_{}.csv'.format(year)
+    with open(filename, 'r') as f:
+        team_headers = f.readline().replace('/', '_').split(',')
+        team_data = f.readlines()
+    return headers, data, team_headers, team_data
+
+def load_data(years =[2015]):
+    data = []
+    teams = {}
+    games = []
+    for year in years:#[2018, 2017, 2016, 2015, 2014]:
+        gh, gd, h, d = load_csv(year)
+        for team in d:
+            t = Team(h, team, year)
+            teams[f'{t.name}_{year}'] = t
+        for row in gd:
+            g = Game(teams, row, year)
+            games.append(g)
+    return teams, games
+
+class Team:
+
+    def __init__(self, headers, data, year):
+        self.year = year
+        self.keys = headers
+        data = data.split(',')
+        #input()
+        for d, header in zip(data, headers):
+            if header.strip():
+                if header == 'misc':
+                    z = d.split('^')
+                    # print(z)
+                    setattr(self, header, list(map(float, z)))
+                else:
+                    try:
+                        setattr(self, header.strip(), float(d))
+                    except:
+                        setattr(self, header.strip(), d.strip())
+                #print(header.strip(), d)
+
+    @property
+    def win_loss(self):
+        return self._win_loss
+
+    @win_loss.setter
+    def win_loss(self, val):
+        x = val.split('-')
+        self._win_loss = float(x[0]) - float(x[1])
+
+    @property
+    def list_data(self):
+        data = [ self.win_loss, self.adjEM, self.adjD, self.adjT, self.luck,
+                 self.oppO, self.oppD, self.noncon_adjEM]
+        data.extend(self.misc)
+        return data
+
+class Game:
+    _game_state = None
+
+    def __init__(self, team_data, game_state, year):
+        self.year = year
+        #print(game_state)
+        self.game_state = game_state
+        self.team_1 = team_data[f"{self.team_1_name}_{year}"]
+        self.team_2 = team_data[f'{self.team_2_name}_{year}']
+
+
+    @property
+    def game_state(self):
+        return self._game_state
+
+    @game_state.setter
+    def game_state(self, val):
+
+        d = val.strip().split(',')
+        self.team_2_name = d[0]
+        outcome = d[1]
+        if 'W' in outcome:
+            self.outcome = 1
+        else:
+            self.outcome = 0
+        home_away = d[2]
+        if 'H' in home_away:
+            self.home_away = 2
+        elif 'N' in home_away:
+            self.home_away = 1
+        else:
+            self.home_away = 0
+
+        self.team_1_name = d[3]
+        self._game_state = d
+
+
+    @property
+    def list_data(self):
+
+        data = [self.home_away]
+        data.extend(self.team_1.list_data)
+        data.extend(self.team_2.list_data)
+        return np.array(data)
+
+
 
 class DataClass:
 
@@ -24,10 +128,20 @@ class DataClass:
     def __init__(self, headers, data_row):
         data_row = data_row.split(',')
         for name, d in zip(headers, data_row):
-            try:
-                setattr(self, name.strip(), float(d))
-            except:
-                setattr(self, name.strip(), d.strip())
+
+            if name.strip() == 'misc' or name.strip() == 'opp_misc':
+
+                #print(d)
+
+                z = d.split('^')
+                #print(z)
+                setattr(self,name, list(map(float,z)))
+                #print(self.misc)
+            else:
+                try:
+                    setattr(self, name.strip(), float(d))
+                except:
+                    setattr(self, name.strip(), d.strip())
 
     @property
     def win_loss(self):
@@ -72,84 +186,18 @@ class DataClass:
             self._outcome = 0
 
 
-def load_data():
-    data = []
-    for year in [2018, 2017, 2016, 2015, 2014]:
-        h, d = load_csv(year)
-        for row in d:
-            data.append(DataClass(h,row))
-    return data
-
-def features_labels(data):
-    feature_columns = [
-
-            tf.feature_column.numeric_column(key='team_score'), #4
-            tf.feature_column.numeric_column(key='opp_score'), #5
-            tf.feature_column.numeric_column(key='home_away'), #6
-            #tf.feature_column.numeric_column(key='conf'), #9
-            tf.feature_column.numeric_column(key='win_loss'), #10
-            tf.feature_column.numeric_column(key='adjEM'),
-            tf.feature_column.numeric_column(key='adjO'),
-            tf.feature_column.numeric_column(key='adjD'),
-            tf.feature_column.numeric_column(key='adjT'),
-            tf.feature_column.numeric_column(key='luck'),
-            tf.feature_column.numeric_column(key='oppO'),
-            tf.feature_column.numeric_column(key='oppD'),
-            tf.feature_column.numeric_column(key='noncon_adjEM'),
-            tf.feature_column.numeric_column(key='opp_rank'),
-            #tf.feature_column.numeric_column(key='opp_name'),
-           # tf.feature_column.numeric_column(key='opp_conf'),
-            tf.feature_column.numeric_column(key='opp_win_loss'),
-            tf.feature_column.numeric_column(key='opp_adjEM'),
-            tf.feature_column.numeric_column(key='opp_adjO'),
-            tf.feature_column.numeric_column(key='opp_adjD'),
-            tf.feature_column.numeric_column(key='opp_adjT'),
-            tf.feature_column.numeric_column(key='opp_luck'),
-            tf.feature_column.numeric_column(key='opp_oppO'),
-            tf.feature_column.numeric_column(key='opp_oppD'),
-            tf.feature_column.numeric_column(key='opp_noncon_adjEM')
-            ]
 
 
-    train_features = {
+def features_labels(games):
+
+    train_features = [game.list_data for game in games]
 
 
-        #'team_score': np.array([x.team_score for x in data]),
-        #'rank': np.array([x.rank for x in data]),
-        #'opp_score': np.array([x.opp_score for x in data]), #5
-        'home_away': np.array([x.home_away for x in data]), #6
-        #'conf': np.array([x.conf for x in data]), #9
-        'win_loss': np.array([x.win_loss for x in data]), #10
-        'adjEM': np.array([x.adjEM for x in data]),
-        'adjO': np.array([x.adjO for x in data]),
-        'adjD': np.array([x.adjD for x in data]),
-        'adjT': np.array([x.adjT for x in data]),
-        'luck': np.array([x.luck for x in data]),
+    #train_features = np.array([x for x in train_features]).transpose().tolist()
+    #print(train_features)
+    #print(np.shape(train_features))
 
-        'oppO': np.array([x.oppO for x in data]),
-        'oppD': np.array([x.oppD for x in data]),
-        'noncon_adjEM': np.array([x.noncon_adjEM for x in data]),
-
-        'opp_rank': np.array([x.opp_rank for x in data]),
-        #'opp_name': np.array([x.opp_name for x in data]),
-        #'opp_conf': np.array([x.opp_conf for x in data]),
-        'opp_win_loss': np.array([x.opp_win_loss for x in data]),
-
-        'opp_adjO': np.array([x.opp_adjO for x in data]),
-        'opp_adjD': np.array([x.opp_adjD for x in data]),
-        'opp_adjT': np.array([x.opp_adjT for x in data]),
-        'opp_luck': np.array([x.opp_luck for x in data]),
-        'opp_adjEM': np.array([x.opp_adjEM for x in data]),
-        'opp_oppO': np.array([x.opp_oppO for x in data]),
-        'opp_oppD': np.array([x.opp_oppD for x in data]),
-        'opp_noncon_adjEM': np.array([x.opp_noncon_adjEM for x in data])
-          #'home-goals': np.array([7, 3, 4]),
-          #'home-opposition-goals': np.array([3, 8, 6]),
-          ## ... for each feature
-    }
-    train_features = np.array([x for _, x in train_features.items()]).transpose().tolist()
-
-    train_labels = [d.outcome for d in data]#)
+    train_labels = [d.outcome for d in games]#)
 
     return train_features, train_labels
 
@@ -158,7 +206,7 @@ def create_model():
     model = keras.Sequential([
         #keras.layers.Flatten(input_shape=(28, 28)),
         #keras.layers.
-        keras.layers.Dense(16, activation=tf.nn.relu),
+        keras.layers.Dense(40, activation=tf.nn.relu),
         keras.layers.Dense(2, activation=tf.nn.softmax)
     ])
     return model
@@ -174,7 +222,8 @@ def get_test_set(train_features, train_labels, n=100):
     test_features = []
     test_labels = []
     for i in range(n):
-        blah = random.randint(0, len(train_features))
+        #print((len(train_features)))
+        blah = random.randint(0, len(train_features) -1)
         test_features.append(train_features.pop(blah))
         test_labels.append(train_labels.pop(blah))
     test_labels = np.array(test_labels)
@@ -201,13 +250,19 @@ def train(model,train_features, train_labels,  callback=None, epochs=10):
 
 
 if __name__ == '__main__':
-    data = load_data()
-    train_features, train_labels = features_labels(data)
+    team_data, game_data = load_data([2015, 2016, 2017, 2018])
+
+    train_features, train_labels = features_labels(game_data)
+    print(train_features[0])
+    input()
     model = create_model()
-    test_features, test_labels, train_features, train_labels = get_test_set(train_features, train_labels)
+    test_features, test_labels, train_features, train_labels = get_test_set(train_features, train_labels, n=1000)
+
+
     callback = checkpoint_callback()
     compile_model(model)
-    train(model,train_features, train_labels,  callback=callback, epochs=10000)
+    train(model,train_features, train_labels,  callback=callback, epochs=30)
+
 
     test_loss, test_acc = model.evaluate(test_features, test_labels)
 

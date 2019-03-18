@@ -1,5 +1,18 @@
 from bs4 import BeautifulSoup
+import time
 
+def get_page(url, session,  retry=0):
+
+    try:
+        page = session.get(url)
+        time.sleep(1)
+    except:
+        if retry <= 4:
+            time.sleep(2)
+            page = get_page(url, session, retry +1)
+        else:
+            raise ConnectionError
+    return page
 class Stat:
     pass
 class Team:
@@ -48,23 +61,53 @@ class Team:
         instance.url = data[1].find_all('a')[0]['href']
         return instance
 
+    def load_advanced_stats(self, sess):
+        page = self.url
+        #print('https://kenpom.com/'+ self.url)
+        page = get_page( 'https://kenpom.com/'+ self.url, sess)
+        page_s =BeautifulSoup(page.text, 'lxml')
+        #print(url)
+        report = page_s.find_all('div', id='report')[0]
+
+        table = report.find_all('table', id='report-table')[0].find_all('tbody')[0]
+        team_stats = table.find_all('tr')  # [0]
+        misc = []
+        for stat in team_stats:
+            if hasattr(stat, 'text'):
+                try:
+                    s = float(stat.text)
+                    misc.append(s)
+                    # print(s)
+                except:
+                    st = stat.find_all('td')[-1].text.replace('%', '').replace('"', "")
+                    try:
+                        s = float(st)
+                        misc.append(s)
+                    except Exception as e:
+                        # print(e)
+                        pass
+
+        self.misc = '^'.join(map(str, misc))
+
     def __repr__(self):
         return f'Team({self.name})'
 
     def load_games(self, session):
         self.season = Season(session, self)
+        self.load_advanced_stats(session)
+
 
     def headers(self, opp=False):
         if opp:
-            return ', '.join([f'opp_{key}' for key in self.keys])
+            return ', '.join([f'opp_{key}' for key in self.keys]) +',opp_misc'
         else:
-            return ','.join(self.keys)
+            return ','.join(self.keys) +',misc'
 
     def csv_row(self, opp=False):
         if opp:
-            d = [f'opp_{str(getattr(self, key))}' for key in self.keys]
+            d = [f'opp_{str(getattr(self, key))}' for key in self.keys] + [self.misc]
         else:
-            d = [str(getattr(self, key)) for key in self.keys]
+            d = [str(getattr(self, key)) for key in self.keys] + [ self.misc]
         return ', '.join(d)
 
 class Season:
@@ -72,10 +115,14 @@ class Season:
 
     def __init__(self, session, team, base='https://kenpom.com/'):
         self.games = []
-        page = session.get(base + team.url)
+        page = get_page(base + team.url, session)
+
+
         page_s = BeautifulSoup(page.text, 'lxml')
+        self.page = page_s
         sched = page_s.find_all('table', id='schedule-table')[0]
         games = sched.find_all('tbody')[0]
+
 
         #print()
         tourn = 0
@@ -152,10 +199,10 @@ class Game:
 
 
     def headers(self):
-        s = 'date, rank, opponent, outcome, team_score, opp_score, home/away'
+        s = 'opponent, outcome, home/away'
         return s
 
     def csv_row(self):
 
-        row = f'{self.date}, {self.rank}, {self.opponent}, {self.outcome}, {self.team1_score}, {self.team2_score}, {self.home}'
+        row = f'{self.opponent}, {self.outcome}, {self.home}'
         return row
