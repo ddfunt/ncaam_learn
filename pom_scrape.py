@@ -12,6 +12,43 @@ user = 'diracdeltafunct@gmail.com'
 password = 'uvawahoowa'
 
 
+stats_urls = ['https://kenpom.com/summary.php?s=RankAdjOE',
+              'https://kenpom.com/stats.php?s=RankeFG_Pct',
+              'https://kenpom.com/teamstats.php?s=RankFG3Pct',
+              'https://kenpom.com/teamstats.php?s=RankF3GRate',
+              'https://kenpom.com/pointdist.php?s=RankOff_3',
+              'https://kenpom.com/index.php?s=RankSOSO',
+              'https://kenpom.com/height.php?s=BenchRank'
+       ]
+def advanced_stats(session, url, year):
+    if int(year) == 2019:
+
+        page = get_page(url, session)
+    else:
+        #& y = 2017
+        page = get_page(url +'&y=2017', session)
+    table = page.find_all('table', id='ratings-table')[0]
+    body = table.find_all('tbody')[0]
+    rows = body.find_all('tr')
+    result = []
+    for row in rows:
+        dl = []
+        data = row.find_all('td')
+        for r in data:
+            # print(r)
+            try:
+                if 'text-align:' in r['style']:
+                    l = r.find_all('a')
+                    dl.append(l[0].text)
+            except:
+                pass
+            try:
+                if 'td-left' in r['class']:
+                    dl.append(r.text)
+            except:
+                pass
+        result.append(dl)
+    return result
 
 payload = {'email': user, 'password': password}
 
@@ -29,11 +66,16 @@ def get_page(url, session):
 def to_csv():
     pass
 
-def get_all_teams(page, sess=None, stats=True):
+def get_all_teams(page, sess=None, stats=True, year=None):
     data_table = page.find_all('table', id='ratings-table')[0]
     body = data_table.find_all('tbody')[0]
     rows = body.find_all('tr')
     teams = OrderedDict()
+    stat_list = []
+    for stat in stats_urls:
+
+        stat_list.extend(advanced_stats(sess, stat, year))
+
     for row in rows:
         d = row.find_all('td')
 
@@ -42,10 +84,20 @@ def get_all_teams(page, sess=None, stats=True):
 
         if t is not None:
             print('loading', t.name)
-            if stats:
-                t.load_advanced_stats(sess)
-                #time.sleep(1)
+            #if stats:
+             #   t.load_advanced_stats(sess)
+             #   #time.sleep(1)
             teams[t.name] = t
+            teams[t.name].stats = []
+
+    for stat in stat_list:
+        if len(stat) > 0:
+            try:
+                teams[stat[0]].stats.extend(stat[1:])
+            except:
+                pass
+
+    print('DONE LOADING')
     return teams
 
 
@@ -72,7 +124,7 @@ def parse_all():
     years_links = {year.text: year['href'] for year in years_raw}
 
     #for year, link in years_links.items():#years_links.items():
-    for year in [ '2019']:
+    for year in [ '2015', '2016', '2017', '2018']:
    #for year in ['2018']:
 
         if year == '2019':
@@ -81,7 +133,7 @@ def parse_all():
             link = years_links[year]
 
         page = get_page(base + link, sess)
-        teams = get_all_teams(page, stats=True, sess=sess)
+        teams = get_all_teams(page, stats=True, sess=sess, year=year)
 
         t = teams[list(teams.keys())[0]]
 

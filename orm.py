@@ -13,6 +13,12 @@ def get_page(url, session,  retry=0):
         else:
             raise ConnectionError
     return page
+
+key =  None
+[-1, -1, -1, -1,]
+
+
+
 class Stat:
     pass
 class Team:
@@ -65,17 +71,25 @@ class Team:
         page = self.url
         #print('https://kenpom.com/'+ self.url)
         page = get_page( 'https://kenpom.com/'+ self.url, sess)
+        print('https://kenpom.com/'+ self.url, sess)
         page_s =BeautifulSoup(page.text, 'lxml')
         #print(url)
         report = page_s.find_all('div', id='report')[0]
 
         table = report.find_all('table', id='report-table')[0].find_all('tbody')[0]
         team_stats = table.find_all('tr')  # [0]
+        #import ipdb; ipdb.set_trace()
         misc = []
         for stat in team_stats:
             if hasattr(stat, 'text'):
                 try:
-                    s = float(stat.text)
+                    s = stat.text.split('\n')
+                    print(s)
+                    if len(s) == 3:
+                        s = s[-2]
+                    else:
+                        s = float(s[-1])
+                    #print(s, stat.text.split('\n'))
                     misc.append(s)
                     # print(s)
                 except:
@@ -88,13 +102,14 @@ class Team:
                         pass
 
         self.misc = '^'.join(map(str, misc))
+        #print(self.misc)
 
     def __repr__(self):
         return f'Team({self.name})'
 
     def load_games(self, session):
         self.season = Season(session, self)
-        self.load_advanced_stats(session)
+        #self.load_advanced_stats(session)
 
 
     def headers(self, opp=False):
@@ -104,10 +119,12 @@ class Team:
             return ','.join(self.keys) +',misc'
 
     def csv_row(self, opp=False):
+        stats = '^'.join(self.stats)
+        #print(stats)
         if opp:
-            d = [f'opp_{str(getattr(self, key))}' for key in self.keys] + [self.misc]
+            d = [f'opp_{str(getattr(self, key))}' for key in self.keys] + [stats]
         else:
-            d = [str(getattr(self, key)) for key in self.keys] + [ self.misc]
+            d = [str(getattr(self, key)) for key in self.keys] + [stats]
         return ', '.join(d)
 
 class Season:

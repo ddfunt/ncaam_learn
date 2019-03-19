@@ -33,10 +33,13 @@ def load_data(years =[2015]):
         gh, gd, h, d = load_csv(year)
         for team in d:
             t = Team(h, team, year)
+            #if len(t.misc)
             teams[f'{t.name}_{year}'] = t
         for row in gd:
+            #print(teams.keys())
             g = Game(teams, row, year)
-            games.append(g)
+            if not g.flag:
+                games.append(g)
     return teams, games
 
 class Team:
@@ -51,7 +54,10 @@ class Team:
                 if header == 'misc':
                     z = d.split('^')
                     # print(z)
-                    setattr(self, header, list(map(float, z)))
+                    try:
+                        setattr(self, header, list(map(float, z)))
+                    except Exception as e:
+                        setattr(self, header, [])
                 else:
                     try:
                         setattr(self, header.strip(), float(d))
@@ -71,9 +77,10 @@ class Team:
     @property
     def list_data(self):
         #self.win_loss,
-        data = [self.win_loss,  self.adjEM, self.adjD, self.adjT, self.luck,
-                 self.oppO, self.oppD, self.noncon_adjEM]
-        data.extend(self.misc)
+        data = [self.adjEM, self.adjD, self.adjT, self.luck,]
+                 #self.oppO, self.oppD, self.noncon_adjEM]
+        #data.extend(self.misc)
+        data = self.misc
         return data
 
 class Game:
@@ -85,6 +92,10 @@ class Game:
         self.game_state = game_state
         self.team_1 = team_data[f"{self.team_1_name}_{year}"]
         self.team_2 = team_data[f'{self.team_2_name}_{year}']
+        if len(self.team_1.misc) < 10 or len(self.team_2.misc) < 10:
+            self.flag = True
+        else:
+            self.flag = False
 
 
     @property
@@ -126,6 +137,7 @@ class Game:
 def features_labels(games):
 
     train_features = [game.list_data for game in games]
+    #print(train_features[0])
 
     train_labels = [d.outcome for d in games]#)
 
@@ -136,7 +148,7 @@ def create_model():
     model = keras.Sequential([
         #keras.layers.Flatten(input_shape=(65, 1)),
         #keras.layers.
-        keras.layers.Dense(40, activation=tf.nn.relu),
+        keras.layers.Dense(60, activation=tf.nn.relu),
         keras.layers.Dense(2, activation=tf.nn.softmax)
     ])
     return model
@@ -185,7 +197,7 @@ if __name__ == '__main__':
     train_features, train_labels = features_labels(game_data)
 
     model = create_model()
-    #test_features, test_labels, train_features, train_labels = get_test_set(train_features, train_labels, n=100)
+    test_features, test_labels, train_features, train_labels = get_test_set(train_features, train_labels, n=1000)
 
     #print(np.shape(test_features))
 
@@ -194,6 +206,6 @@ if __name__ == '__main__':
     train(model, np.array(train_features), np.array(train_labels),  callback=callback, epochs=3000)
 
 
-    #test_loss, test_acc = model.evaluate(test_features, test_labels)
+    test_loss, test_acc = model.evaluate(test_features, test_labels)
 
-    #print('Test accuracy:', test_acc)
+    print('Test accuracy:', test_acc)
