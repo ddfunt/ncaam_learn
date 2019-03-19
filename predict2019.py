@@ -22,7 +22,7 @@ def construct_game(team1, team2):
 
 model = create_model()
 compile_model(model)
-checkpoint_path = "training_1/cp.ckpt"
+checkpoint_path = "training_3ktotal/cp.ckpt"
 
 
 def load_bracket(file='bracket.csv'):

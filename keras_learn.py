@@ -9,7 +9,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import numpy as np
 
+import math
+def convertToNumber(s):
+    return int.from_bytes(s.encode(), 'little')
 
+def convertFromNumber(n):
+    return n.to_bytes(math.ceil(n.bit_length() / 8), 'little').decode()
 
 def load_csv( year):
     filename = 'game_data_{}.csv'.format(year)
@@ -48,6 +53,7 @@ class Team:
         self.year = year
         self.keys = headers
         data = data.split(',')
+
         #input()
         for d, header in zip(data, headers):
             if header.strip():
@@ -64,7 +70,7 @@ class Team:
                     except:
                         setattr(self, header.strip(), d.strip())
                 #print(header.strip(), d)
-
+        self.name_hash = convertToNumber(self.name)
     @property
     def win_loss(self):
         return self._win_loss
@@ -130,6 +136,8 @@ class Game:
         data = [self.home_away]
         data.extend(self.team_1.list_data)
         data.extend(self.team_2.list_data)
+        data.extend([self.team_1.name_hash, self.team_2.name_hash])
+        #print([self.team_1.name_hash, self.team_2.name_hash])
         return np.array(data)
 
 
@@ -137,6 +145,7 @@ class Game:
 def features_labels(games):
 
     train_features = [game.list_data for game in games]
+
     #print(train_features[0])
 
     train_labels = [d.outcome for d in games]#)
@@ -148,7 +157,7 @@ def create_model():
     model = keras.Sequential([
         #keras.layers.Flatten(input_shape=(65, 1)),
         #keras.layers.
-        keras.layers.Dense(60, activation=tf.nn.relu),
+        keras.layers.Dense(120, activation=tf.nn.relu),
         keras.layers.Dense(2, activation=tf.nn.softmax)
     ])
     return model
