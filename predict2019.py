@@ -22,10 +22,10 @@ def construct_game(team1, team2):
 
 model = create_model()
 compile_model(model)
-checkpoint_path = "training_1/cp.ckpt"
+checkpoint_path = "training_best/cp.ckpt"
 
 
-def load_bracket(file='bracket.csv'):
+def load_bracket(file='finals.csv'):
     d = []
     with open(file, 'r') as f:
         for row in f:
@@ -73,6 +73,6 @@ if __name__ == '__main__':
         else:
             output.append(f'{g[0]}, {g[1]},-,-,-,-\n')
 
-    with open('fit.csv', 'w') as f:
+    with open('fit_finals.csv', 'w') as f:
         for row in output:
             f.write(row)

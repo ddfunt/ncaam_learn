@@ -86,7 +86,7 @@ class Team:
         data = [self.adjEM, self.adjD, self.adjT, self.luck,]
                  #self.oppO, self.oppD, self.noncon_adjEM]
         #data.extend(self.misc)
-        data = [self.win_loss]
+        data = []#[self.win_loss]
         data.extend(self.misc)
         return data
 
