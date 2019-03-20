@@ -158,6 +158,8 @@ def create_model():
     model = keras.Sequential([
         #keras.layers.Flatten(input_shape=(65, 1)),
         #keras.layers.
+        keras.layers.Dense(64, activation=tf.nn.relu),
+        keras.layers.Dense(32, activation=tf.nn.relu),
         keras.layers.Dense(16, activation=tf.nn.relu),
         keras.layers.Dense(2, activation=tf.nn.softmax)
     ])
@@ -213,7 +215,7 @@ def train(model,train_features, train_labels,  callback=None, epochs=10):
 
 
 if __name__ == '__main__':
-    team_data, game_data = load_data([ 2016, 2017, 2018, 2019])
+    team_data, game_data = load_data([  2015, 2016, 2017, 2018, 2019])
 
     train_features, train_labels = features_labels(game_data)
 
@@ -224,7 +226,7 @@ if __name__ == '__main__':
 
     callback = checkpoint_callback()
     compile_model(model)
-    train(model, np.array(train_features), np.array(train_labels),  callback=callback, epochs=3000)
+    train(model, np.array(train_features), np.array(train_labels),  callback=callback, epochs=999900)
 
 
     test_loss, test_acc = model.evaluate(test_features, test_labels)
