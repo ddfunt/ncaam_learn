@@ -86,7 +86,8 @@ class Team:
         data = [self.adjEM, self.adjD, self.adjT, self.luck,]
                  #self.oppO, self.oppD, self.noncon_adjEM]
         #data.extend(self.misc)
-        data = self.misc
+        data = [self.win_loss]
+        data.extend(self.misc)
         return data
 
 class Game:
@@ -136,7 +137,7 @@ class Game:
         data = [self.home_away]
         data.extend(self.team_1.list_data)
         data.extend(self.team_2.list_data)
-        data.extend([self.team_1.name_hash, self.team_2.name_hash])
+        #data.extend([self.team_1.name_hash, self.team_2.name_hash])
         #print([self.team_1.name_hash, self.team_2.name_hash])
         return np.array(data)
 
@@ -157,16 +158,21 @@ def create_model():
     model = keras.Sequential([
         #keras.layers.Flatten(input_shape=(65, 1)),
         #keras.layers.
-        keras.layers.Dense(120, activation=tf.nn.relu),
+        keras.layers.Dense(16, activation=tf.nn.relu),
         keras.layers.Dense(2, activation=tf.nn.softmax)
     ])
     return model
 
 def compile_model(model):
 
+    #graph = tf.Graph()
+    #with graph.as_default():
     model.compile(optimizer='adam',
-                  loss='sparse_categorical_crossentropy',
-                  metrics=['accuracy'])
+                      loss='sparse_categorical_crossentropy',
+                      metrics=['accuracy'])
+    #writer = tf.summary.FileWriter(logdir='logdir', graph=graph)
+    #writer.flush()
+    #return writer
 import random
 
 def get_test_set(train_features, train_labels, n=100):
@@ -197,7 +203,13 @@ def checkpoint_callback():
 
 
 def train(model,train_features, train_labels,  callback=None, epochs=10):
-    model.fit(train_features, train_labels, epochs=epochs, callbacks=[callback])
+    import time
+    #import tensorboard
+
+    #tensorboard = tensorboard.TensorBoard(log_dir="logs/{}".format(time()))
+    graph = keras.callbacks.TensorBoard(log_dir='./Graph', histogram_freq=0,
+                                write_graph=True, write_images=True)
+    model.fit(train_features, train_labels, epochs=epochs, callbacks=[callback, graph])
 
 
 if __name__ == '__main__':
