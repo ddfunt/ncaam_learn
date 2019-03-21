@@ -197,7 +197,7 @@ def get_test_set(train_features, train_labels, n=100):
 import os
 
 def checkpoint_callback():
-    checkpoint_path = "training_4/cp.ckpt"
+    checkpoint_path = "training_4444/cp.ckpt"
     checkpoint_dir = os.path.dirname(checkpoint_path)
 
     # Create checkpoint callback
