@@ -158,9 +158,9 @@ def create_model():
     model = keras.Sequential([
         #keras.layers.Flatten(input_shape=(65, 1)),
         #keras.layers.
-        keras.layers.Dense(64, activation=tf.nn.relu, input_dim=101),
-        keras.layers.Dense(32, activation=tf.nn.relu),
-        keras.layers.Dense(16, activation=tf.nn.relu),
+        keras.layers.Dense(24, activation=tf.nn.relu, input_dim=101),
+        #keras.layers.Dense(32, activation=tf.nn.relu),
+        #keras.layers.Dense(16, activation=tf.nn.relu),
         keras.layers.Dense(2, activation=tf.nn.softmax)
     ])
     return model
