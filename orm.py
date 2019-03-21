@@ -216,10 +216,10 @@ class Game:
 
 
     def headers(self):
-        s = 'opponent, outcome, home/away'
+        s = 'opponent, outcome, home/away, tourn'
         return s
 
     def csv_row(self):
 
-        row = f'{self.opponent}, {self.outcome}, {self.home}'
+        row = f'{self.opponent}, {self.outcome}, {self.home}, {self.tourn}'
         return row
