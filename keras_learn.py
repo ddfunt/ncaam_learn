@@ -127,7 +127,9 @@ class Game:
         else:
             self.home_away = 0
 
-        self.team_1_name = d[3]
+        self.tourn = int(d[3])
+
+        self.team_1_name = d[4]
         self._game_state = d
 
 
@@ -145,11 +147,11 @@ class Game:
 
 def features_labels(games):
 
-    train_features = [game.list_data for game in games]
+    train_features = [game.list_data for game in games if game.tourn >0]
 
     #print(train_features[0])
 
-    train_labels = [d.outcome for d in games]#)
+    train_labels = [d.outcome for d in games if d.tourn >0]#)
 
     return train_features, train_labels
 
@@ -195,7 +197,7 @@ def get_test_set(train_features, train_labels, n=100):
 import os
 
 def checkpoint_callback():
-    checkpoint_path = "training_3/cp.ckpt"
+    checkpoint_path = "training_4/cp.ckpt"
     checkpoint_dir = os.path.dirname(checkpoint_path)
 
     # Create checkpoint callback
@@ -222,7 +224,7 @@ if __name__ == '__main__':
     train_features, train_labels = features_labels(game_data)
 
     model = create_model()
-    test_features, test_labels, train_features, train_labels = get_test_set(train_features, train_labels, n=1000)
+    test_features, test_labels, train_features, train_labels = get_test_set(train_features, train_labels, n=10)
 
     #print(np.shape(train_features))
     #input()
