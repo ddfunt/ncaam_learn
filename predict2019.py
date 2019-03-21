@@ -23,7 +23,7 @@ def construct_game(team1, team2):
 
 model = create_model()
 compile_model(model)
-checkpoint_path = "training_1/cp.ckpt"
+checkpoint_path = "training_3/cp.ckpt"
 
 
 def load_bracket(file='bracket.csv'):
@@ -50,6 +50,7 @@ if __name__ == '__main__':
             model.load_weights(checkpoint_path)
 
             game = construct_game(team1, team2)
+            print(np.shape(game))
             predictions = model.predict(game)[0]
             print(f'{team1.name} win:  {predictions[1]*100:.2f}%')
             print(f'{team1.name} loss: {predictions[0]*100:.2f}%')

@@ -86,7 +86,7 @@ class Team:
         data = [self.adjEM, self.adjD, self.adjT, self.luck,]
                  #self.oppO, self.oppD, self.noncon_adjEM]
         #data.extend(self.misc)
-        data = []#[self.win_loss]
+        data = [self.luck]#[self.win_loss]
         data.extend(self.misc)
         return data
 
@@ -158,7 +158,7 @@ def create_model():
     model = keras.Sequential([
         #keras.layers.Flatten(input_shape=(65, 1)),
         #keras.layers.
-        keras.layers.Dense(64, activation=tf.nn.relu),
+        keras.layers.Dense(64, activation=tf.nn.relu, input_dim=101),
         keras.layers.Dense(32, activation=tf.nn.relu),
         keras.layers.Dense(16, activation=tf.nn.relu),
         keras.layers.Dense(2, activation=tf.nn.softmax)
@@ -171,7 +171,8 @@ def compile_model(model):
     #with graph.as_default():
     model.compile(optimizer='adam',
                       loss='sparse_categorical_crossentropy',
-                      metrics=['accuracy'])
+                      metrics=['accuracy'],
+                    )
     #writer = tf.summary.FileWriter(logdir='logdir', graph=graph)
     #writer.flush()
     #return writer
@@ -194,7 +195,7 @@ def get_test_set(train_features, train_labels, n=100):
 import os
 
 def checkpoint_callback():
-    checkpoint_path = "training_1/cp.ckpt"
+    checkpoint_path = "training_3/cp.ckpt"
     checkpoint_dir = os.path.dirname(checkpoint_path)
 
     # Create checkpoint callback
@@ -211,17 +212,20 @@ def train(model,train_features, train_labels,  callback=None, epochs=10):
     #tensorboard = tensorboard.TensorBoard(log_dir="logs/{}".format(time()))
     graph = keras.callbacks.TensorBoard(log_dir='./Graph', histogram_freq=0,
                                 write_graph=True, write_images=True)
-    model.fit(train_features, train_labels, epochs=epochs, callbacks=[callback, graph])
+    model.fit(train_features, train_labels, epochs=epochs, callbacks=[callback, graph],
+              )
 
 
 if __name__ == '__main__':
-    team_data, game_data = load_data([  2015, 2016, 2017, 2018, 2019])
+    team_data, game_data = load_data([  2018, 2019])#2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019])
 
     train_features, train_labels = features_labels(game_data)
 
     model = create_model()
     test_features, test_labels, train_features, train_labels = get_test_set(train_features, train_labels, n=1000)
 
+    #print(np.shape(train_features))
+    #input()
     #print(np.shape(test_features))
 
     callback = checkpoint_callback()
